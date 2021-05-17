@@ -1,0 +1,145 @@
+@startuml piacere_doml_wp_application
+
+' Design Configuration
+skinparam monochrome true
+skinparam tabSize 2
+
+package "VM IMAGE" <<Frame>> {
+
+    object "image" as ami <<**piacere.doml.nodes.Image**>> {
+        client_config: dict
+        resource_config: dict
+    }
+}
+
+package "AWS CLOUD" <<Frame>> {
+
+    package "ROUTE" <<Frame>> {
+    
+        object "route" as route <<**piacere.doml.nodes.Route**>> {
+            client_config: dict
+            resource_config: dict
+        }
+        
+        object "route_table" as route_table <<**piacere.doml.nodes.RouteTable**>> {
+            client_config: dict
+        }
+    
+        route --> route_table : <<**contained_in**>>
+    }
+    
+    object "internet_gateway" as internet_gateway <<**piacere.doml.nodes.InternetGateway**>> {
+        client_config: dict
+    }
+
+    object "vpc" as vpc <<**piacere.doml.nodes.Vpc**>> {
+        client_config: dict
+        resource_config: dict
+    }
+
+    internet_gateway --> vpc : <<**connected_to**>>
+}
+
+package "NETWORK" <<Frame>> {
+
+    package "FIREWALL" <<Frame>> {
+    
+        object "security_group_rules" as security_group_rules <<**piacere.doml.nodes.SecurityGroupRule**>> {
+            client_config: dict
+            resource_config: dict
+        }
+        
+        object "security_group" as security_group <<**piacere.doml.nodes.SecurityGroup**>> {
+            client_config: dict
+            resource_config: dict
+        }
+    
+        security_group_rules --> security_group : <<**contained_in**>>
+    }
+
+    object "subnet" as subnet <<**piacere.doml.nodes.Subnet**>> {
+        client_config: dict
+        resource_config: dict
+    }
+}
+
+
+'together {
+
+package "WORDPRESS: WEB" <<Frame>> {
+
+    object "vm_app" as vm <<**piacere.doml.nodes.VMInstances**>> {
+        client_config: dict
+        agent_config: dict
+        resource_config: dict
+    }
+    
+    object "cloud_init" as cloud_init <<**piacere.doml.nodes.CloudConfig**>> {
+        resource_config: dict
+    }
+    
+    object "network_interface" as network_interface <<**piacere.doml.nodes.NetInterface**>> {
+        client_config: dict
+        resource_config: dict
+    }
+
+    object "ip" as ip <<**piacere.doml.nodes.ElasticIP**>> #lightgray {
+        client_config: dict
+    }
+    
+    vm --> ami : <<**depends_on**>>
+    vm --> network_interface : <<**depends_on**>>
+    vm --> cloud_init : <<**depends_on**>>
+    
+    ip --> network_interface : <<**depends_on**>>
+    
+    network_interface --> security_group : <<**depends_on**>>
+    network_interface --> subnet : <<**depends_on**>>
+}
+
+package "WORDPRESS: DATABASE" <<Database>> {
+
+    object "vm_database" as vm_database <<**piacere.doml.nodes.VMInstances**>> {
+        client_config: dict
+        agent_config: dict
+        resource_config: dict
+    }
+    
+    object "cloud_init_db" as cloud_init_db <<**piacere.doml.nodes.CloudConfig**>> {
+        resource_config: dict
+    }
+    
+    object "network_interface_db" as network_interface_db <<**piacere.doml.nodes.NetInterface**>> {
+        client_config: dict
+        resource_config: dict
+    }
+    
+    object "ip_db" as ip_db <<**piacere.doml.nodes.ElasticIP**>> #lightgray {
+        client_config: dict
+    }
+
+    vm_database --> ami : <<**depends_on**>>
+    vm_database --> network_interface_db : <<**depends_on**>>
+    vm_database --> cloud_init_db : <<**depends_on**>>
+    
+    ip_db --> network_interface_db : <<**depends_on**>>
+    
+    network_interface_db --> security_group : <<**depends_on**>>
+    network_interface_db --> subnet : <<**depends_on**>>
+}
+
+'}
+
+
+security_group --> vpc : <<**depends_on**>>
+
+route --> internet_gateway : <<**connected_to**>>
+
+route_table --> vpc : <<**contained_in**>>
+
+'route_table --------> subnet : <<**connected_to**>>
+route_table --> subnet : <<**connected_to**>>
+
+subnet --> vpc : <<**depends_on**>>
+
+@enduml

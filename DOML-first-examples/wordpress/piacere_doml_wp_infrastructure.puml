@@ -1,0 +1,198 @@
+@startuml piacere_doml_wp_infrastructure_flat
+
+' Design Configuration
+skinparam monochrome true
+skinparam tabSize 2
+
+'package "VM IMAGE" <<Frame>> {
+
+    object "image" as ami <<**piacere.doml.nodes.Image**>> {
+        client_config: dict
+        resource_config:
+            \t kwargs:
+                \t \t Filters: Array
+                    \t \t \t Name: String
+                    \t \t \t Values: Array(String)
+    }
+'}
+
+'package "AWS CLOUD" <<Frame>> {
+
+    'package "ROUTE" <<Frame>> {
+    
+        object "route" as route <<**piacere.doml.nodes.Route**>> {
+            client_config: dict
+            resource_config:
+                \t kwargs:
+                    \t \t DestinationCidrBlock: String
+        }
+        
+        object "route_table" as route_table <<**piacere.doml.nodes.RouteTable**>> {
+            client_config: dict
+        }
+    
+        route --> route_table : <<**contained_in**>>
+    '}
+    
+    object "internet_gateway" as internet_gateway <<**piacere.doml.nodes.InternetGateway**>> {
+        client_config: dict
+    }
+
+    object "vpc" as vpc <<**piacere.doml.nodes.Vpc**>> {
+        client_config: dict
+        resource_config:
+            \t CidrBlock: String
+    
+    }
+
+    internet_gateway --> vpc : <<**connected_to**>>
+'}
+
+'package "NETWORK" <<Frame>> {
+
+    'package "FIREWALL" <<Frame>> {
+    
+        object "security_group_rules" as security_group_rules <<**piacere.doml.nodes.SecurityGroupRule**>> {
+            client_config: dict
+            resource_config:
+                \t IpPermissions: Array
+                    \t \t IpProtocol: String
+                    \t \t FromPort: Integer
+                    \t \t ToPort: Integer
+                    \t \t IpRanges: Array
+                        \t \t \t CidrIp: String
+        }
+        
+        object "security_group" as security_group <<**piacere.doml.nodes.SecurityGroup**>> {
+            client_config: dict
+            resource_config:
+                \t GroupName: String
+                \t Description: String
+                \t VpcId: String
+        }
+    
+        security_group_rules -left-> security_group : <<**contained_in**>>
+    '}
+
+    object "subnet" as subnet <<**piacere.doml.nodes.Subnet**>> {
+        client_config: dict
+        resource_config:
+            \t CidrBlock: String
+            \t AvailabilityZone: String
+    }
+'}
+
+
+'together {
+
+'package "WORDPRESS: WEB" <<Frame>> {
+
+    object "vm_app" as vm <<**piacere.doml.nodes.VMInstances**>> {
+        client_config: dict
+        agent_config:
+            \t install_method: String
+            \t user: String
+            \t key: String
+        resource_config:
+            \t ImageId: String
+            \t InstanceType: String
+            \t kwargs:
+                \t \t UserData: String
+        use_public_ip: Boolean
+    }
+    
+    object "cloud_init" as cloud_init <<**piacere.doml.nodes.CloudConfig**>> {
+        resource_config:
+            \t users: Array
+                \t \t name: String
+                \t \t shell: String
+                \t \t sudo: Array(String)
+                \t \t ssh-authorized-keys: Array(String)
+    }
+    
+    object "network_interface" as network_interface <<**piacere.doml.nodes.NetInterface**>> {
+        client_config: dict
+        resource_config:
+            \t kwargs:
+                \t \t Description: String
+                \t \t SubnetId: String
+                \t \t Groups: Array(String)
+    }
+
+    object "ip" as ip <<**piacere.doml.nodes.ElasticIP**>> #lightgray {
+        client_config: dict
+    }
+    
+    vm --> ami : <<**depends_on**>>
+    vm --> network_interface : <<**depends_on**>>
+    vm --> cloud_init : <<**depends_on**>>
+    
+    ip --> network_interface : <<**depends_on**>>
+    
+    network_interface --> security_group : <<**depends_on**>>
+    network_interface --> subnet : <<**depends_on**>>
+'}
+
+'package "WORDPRESS: DATABASE" <<Database>> {
+
+    object "vm_database" as vm_database <<**piacere.doml.nodes.VMInstances**>> {
+        client_config: dict
+        agent_config:
+            \t install_method: String
+            \t user: String
+            \t key: String
+        resource_config:
+            \t ImageId: String
+            \t InstanceType: String
+            \t kwargs:
+                \t \t UserData: String
+        use_public_ip: Boolean
+    }
+    
+    object "cloud_init_db" as cloud_init_db <<**piacere.doml.nodes.CloudConfig**>> {
+        resource_config:
+            \t users: Array
+                \t \t name: String
+                \t \t shell: String
+                \t \t sudo: Array(String)
+                \t \t ssh-authorized-keys: Array(String)
+    }
+    
+    object "network_interface_db" as network_interface_db <<**piacere.doml.nodes.NetInterface**>> {
+        client_config: dict
+        resource_config:
+            \t kwargs:
+                \t \t Description: String
+                \t \t SubnetId: String
+                \t \t Groups: Array(String)
+    }
+    
+    object "ip_db" as ip_db <<**piacere.doml.nodes.ElasticIP**>> #lightgray {
+        client_config: dict
+    }
+
+    vm_database --> ami : <<**depends_on**>>
+    vm_database --> network_interface_db : <<**depends_on**>>
+    vm_database --> cloud_init_db : <<**depends_on**>>
+    
+    ip_db --> network_interface_db : <<**depends_on**>>
+    
+    network_interface_db --> security_group : <<**depends_on**>>
+    network_interface_db --> subnet : <<**depends_on**>>
+'}
+
+'}
+
+
+security_group --> vpc : <<**depends_on**>>
+
+route --> internet_gateway : <<**connected_to**>>
+
+route_table --> vpc : <<**contained_in**>>
+
+'route_table --------> subnet : <<**connected_to**>>
+route_table --> subnet : <<**connected_to**>>
+
+subnet --> vpc : <<**depends_on**>>
+
+@enduml
