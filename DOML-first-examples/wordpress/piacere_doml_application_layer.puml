@@ -1,0 +1,39 @@
+@startuml piacere_doml_application_layer
+
+' Design Configuration
+skinparam monochrome true
+skinparam tabSize 2
+
+object "wordpress_system" as application <<**piacere.doml.Application**>> {
+
+}
+
+object "wordpress_server" as ws <<**piacere.doml.Component**>> {
+
+}
+
+interface rest_interface_to_clients
+
+rest_interface_to_clients - ws
+
+object "database" as db <<**piacere.doml.Component**>> {
+
+}
+
+application *-- ws
+application *-- db
+ws --> db : <<**is_using**>
+
+object "dbms" as dbms <<**piacere.doml.Component**>> {
+
+}
+
+db -- dbms : <<**is_installed_on**>>
+
+interface jdbc
+
+jdbc - dbms
+
+ws -right-(jdbc
+
+@enduml
