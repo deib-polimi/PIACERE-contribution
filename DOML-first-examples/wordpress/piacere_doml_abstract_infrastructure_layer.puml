@@ -1,0 +1,54 @@
+@startuml piacere_doml_application_layer
+
+' Design Configuration
+skinparam monochrome true
+skinparam tabSize 2
+
+
+object "wordpress_server" as ws <<**piacere.doml.Component**>> {
+
+}
+
+object "dbms" as dbms <<**piacere.doml.Component**>> {
+
+}
+
+interface jdbc
+
+jdbc - dbms
+
+ws -right-(jdbc
+
+object "container1" as cont <<**piacere.doml.Docker_Container**>> {
+
+}
+
+ws --> cont : <<**is_running_on**>
+
+object "container1_image" as c_im <<**piacere.doml.Docker_Image**>> {
+
+}
+
+cont --> c_im : <<**instantiated_from**>>
+
+object "container1_docker_file" as c_df <<**piacere.doml.Docker_File**>> {
+
+}
+
+c_im --> c_df : <<**created_from**>>
+
+object "wp_vm" as wp_vm <<**piacere.doml.Virtual Machine**>> {
+
+}
+
+cont --> wp_vm : <<**is_running_on**>
+
+object "dbms_vm" as dbms_vm <<**piacere.doml.Virtual Machine**>> {
+
+}
+
+dbms --> dbms_vm : <<**is_running_on**>
+
+
+
+@enduml
