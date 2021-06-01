@@ -1,0 +1,108 @@
+@startuml piacere_doml_concepts
+
+skinparam monochrome true
+skinparam tabSize 2
+
+package "Application Layer" {
+
+  class Application
+  class Component
+  class Connector
+  class Software_interface
+
+  Application o-- "1..n" Component
+  Component "1..n" -- "1..n" Software_interface
+  Connector "1..n" -- "1..n" Component : connects
+}
+
+package "Abstract Infrastructure Layer" {
+  class Computing_Node
+  class CN_Generation_Element
+  class Virtual_Machine
+  class Docker_Container
+  class VM_Image
+  class Docker_Image
+  class Docker_File
+  class Network
+  class Subnet
+  class Network_Interface
+  class Firewall
+  class Security_Group
+  class Security_Rule
+  class Runtime_Orchestration_Environment
+  class Runtime_Provider
+  class Storage
+  class IoT_Node
+
+  Component ^-- Computing_Node
+  Computing_Node ^-- Virtual_Machine
+  Computing_Node ^-- Docker_Container
+  Computing_Node ^-- IoT_Node
+  CN_Generation_Element --> Computing_Node : generates
+  CN_Generation_Element ^-- VM_Image
+  CN_Generation_Element ^-- Docker_Image
+  CN_Generation_Element ^-- Docker_File
+  VM_Image --> Virtual_Machine : generates
+  Docker_Image --> Docker_Container : generates
+  Docker_File --> Docker_Image : generates
+  Network --> Connector : enables
+  Network -- "1..n" Computing_Node : connects
+  Subnet "1..n" --> Network : is_a_partition_of
+  Computing_Node --> "1..n" Network_Interface : implements
+  Network_Interface "1..n" --> Subnet : belongs_to
+  Firewall --> Network : controls
+  Firewall o-- "1..n" Security_Group
+  Security_Group o-- "1..n" Security_Rule
+  Runtime_Orchestration_Environment -- "1..n" Computing_Node : controls
+  Runtime_Orchestration_Environment -- "1..n" Network : controls
+  Runtime_Provider -- "1..n" Computing_Node : offers
+  Runtime_Provider -- "1..n" Network : offers
+  Computing_Node "0..n" -- "0..n" Storage : is_attached_to
+}
+
+package "Concrete Infrastructure Layer" {
+  class AWS
+  class GoogleCloud
+  class AWS_VM
+  class Google_VM
+  class VM_Instance {
+    string IP_address
+  }
+
+  class Host {
+    string Type
+  }
+  class Router
+
+  Runtime_Provider ^-- AWS
+  Runtime_Provider ^-- GoogleCloud
+  Virtual_Machine ^-- AWS_VM
+  AWS -- "1..n" AWS_VM : offers
+  Virtual_Machine ^-- Google_VM
+  GoogleCloud -- "1..n" Google_VM : offers
+  VM_Instance --> "0..1" AWS_VM : is_an_instance_of
+  VM_Instance --> "0..1" Google_VM : is_an_instance_of
+  Virtual_Machine -- Host : is_running_on
+}
+
+package "Common Elements" {
+  class Requirement
+  class Constraint
+  class Affinity_Rule
+  class Credentials
+  class Configuration
+  class Policy
+  class DOML_Element
+
+  Configuration o-- "1..n" Constraint
+  Configuration o-- "1..n" Affinity_Rule
+  Configuration o-- "1..n" Credentials
+
+  Policy --> Requirement : enforces
+  Policy --> Configuration : has_an_impact_on
+  Requirement --> DOML_Element : predicates_on
+  Policy --> DOML_Element : applies
+  Configuration --> DOML_Element 
+}
+
+@enduml
